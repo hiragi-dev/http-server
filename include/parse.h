@@ -9,4 +9,13 @@
 bool
 eat_until(char **, char, substring *);
 
+void
+skip_whitespace(char **);
+
+void
+skip_c(char **s, char c);
+
+bool
+is_crlf(char *, size_t);
+
 #endif
