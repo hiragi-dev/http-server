@@ -24,7 +24,8 @@ get_in_addr(struct sockaddr *sa)
   }
 }
 
-bool is_crlf(char *s, size_t len) {
+bool
+is_crlf(char *s, size_t len) {
   if (len < 2)
     return false;
 
@@ -48,7 +49,7 @@ enum HttpMethod {
 };
 
 struct HttpMethodTuple {
-  char *str;
+n  char *str;
   enum HttpMethod method;
 };
 
