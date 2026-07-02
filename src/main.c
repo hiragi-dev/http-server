@@ -13,6 +13,7 @@
 #include <stdbool.h>
 
 #include "substring.h"
+#include "parse.h"
 
 #define PORT "8080"
 
@@ -34,36 +35,6 @@ is_crlf(char *s, size_t len) {
   return s[0] == '\r' && s[1] == '\n';
 }
 
-bool
-eat(char **src, char *target, size_t len)
-{ 
-  if (strncmp(*src, target, len) == 0) {
-    *src += len;
-    return true;
-  }
-
-  return false;
-}
-
-int
-eat_until(char **src, size_t len, char d, substring *res)
-{
-  char *b = *src;
-  
-  for (size_t i = 0; i < len; i++) {
-    if (**src == d) {
-      *res =  (substring){ .from = b, .to = *src };
-      return 1;
-    }
-
-    *src = *src + 1;
-  }
-
-  *src = b;
-
-  return -1;
-}
-
 enum HttpMethod {
   POST,
   GET,
@@ -79,47 +50,40 @@ struct HttpMethodTuple http_methods[] = {
   { .str = "GET", .method = GET },
 };
 
-int
-parse_http_method(char **target, size_t len, enum HttpMethod *res)
+void
+skip_whitespace(char **s)
 {
-  for (int i = 0; i < sizeof(http_methods) / sizeof(struct HttpMethodTuple); i++) {
-    if (eat(target, http_methods[i].str, strlen(http_methods[i].str))) {
-	*res = http_methods[i].method;
-	return 0;
-    }
-  }
-
-  return -1;
-}
-
-int
-parse_http_request_target(char **target, size_t len, substring *req_target)
-{
-  int rv = eat_until(target, len, ' ', req_target);
-  return rv;
+  while (**s == ' ')
+    *s += 1;
 }
 
 int
 parse_http_request(char *req, size_t len)
-{  
-  enum HttpMethod http_method;
-  if (parse_http_method(&req, len, &http_method)) {
-    fprintf(stderr, "failed to parse http method");
+{ 
+  substring req_method;
+  if(!eat_until(&req, ' ', &req_method)) {
+    fprintf(stderr, "failed to parse http request method");
     return -1;
   }
-
-  /* skip whitespace */
-  req++;
+  skip_whitespace(&req);
 
   substring req_target;
-  if (parse_http_request_target(&req, len, &req_target) != 0) {
-      
+  if(!eat_until(&req, ' ', &req_target)) {
+    fprintf(stderr, "failed to parse http request target");
+    return -1;
   }
+  skip_whitespace(&req);
 
+  substring req_protocol;
+  if (!eat_until(&req, '\r', &req_protocol)) {
+    fprintf(stderr, "failed to parse http protocol");
+    return -1;
+  }
+  skip_whitespace(&req);
+
+  substring_print(req_method);
   substring_print(req_target);
-  
-
-  
+  substring_print(req_protocol);
 
   //  printf("parsed http method is %02d, %02d\n",int(http_method), GET);
   /* for (size_t i = 0; i < len; i++) { */
