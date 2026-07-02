@@ -110,7 +110,10 @@ main(int argc, char *argv[])
     recv_buffer[recv_len] = '\0';
     
     char *req = recv_buffer;
-    parse_http_request(&req);
+    http_request *http_request = parse_http_request(&req);
+    if (http_request) {
+      http_request_print(*http_request);
+    }
     
     close(client_fd);
   }

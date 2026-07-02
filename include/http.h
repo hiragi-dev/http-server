@@ -20,7 +20,7 @@ typedef struct http_request {
   substring message_body;
 } http_request;
 
-int
+http_request *
 parse_http_request(char **);
 
 int
@@ -28,5 +28,8 @@ parse_http_request_start_line(char **, http_request_line *);
 
 http_field *
 parse_http_field_line(char **req);
+
+void
+http_request_print(http_request);
 
 #endif
