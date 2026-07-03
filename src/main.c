@@ -69,7 +69,20 @@ const char http_response[] = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n
 </html>\
 ";
 
-const char http_response_ok[] = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
+const char http_response_ok[] =
+    "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
+
+const char http_response_404[] =
+    "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n\
+<!doctype html>\
+<head>\
+    <title>404 not found</title>\
+</head>\
+<html lang=\"en\">\
+<h>404 Not Found</h>\
+<p>Oops! Something went wrong!</p>\
+</html>\
+";
 
 resource_entry *resources = NULL;
 
@@ -90,9 +103,11 @@ handle_http_request(http_request *req, int client_fd)
         if (strncmp(request_target.from, res->url, strlen(res->url)) == 0) {
           send(client_fd, http_response_ok, sizeof http_response_ok, 0);
           send(client_fd, res->blob, res->len, 0);
-          break;
+          return;
         }
       }
+
+      send(client_fd, http_response_404, sizeof http_response_404, 0);
       
       break;
     default:
@@ -162,9 +177,9 @@ main(int argc, char *argv[])
     resources = new_entry;
   }
 
-  for (resource_entry *entry = resources; entry; entry = entry->next) {
-    printf("%s -> '%.*s\n'", entry->url, entry->len, entry->blob);
-  }
+  // for (resource_entry *entry = resources; entry; entry = entry->next) {
+  //   printf("%s -> '%.*s\n'", entry->url, entry->len, entry->blob);
+  // }
   
   struct addrinfo hints, *servinfo;
 
