@@ -11,6 +11,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <dirent.h>
 
 #include "substring.h"
 #include "parse.h"
@@ -43,9 +44,80 @@ struct HttpMethodTuple http_methods[] = {
   { .str = "GET", .method = GET },
 };
 
+bool
+into_http_method(substring target, enum HttpMethod *res)
+{
+  for (int i = 0; i < sizeof(http_methods) / sizeof(struct HttpMethodTuple); i++) {
+    if (strncmp(http_methods[i].str, target.from, strlen(http_methods[i].str)) == 0) {
+      *res = http_methods[i].method;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+const char http_response[] = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n\
+<!DOCTYPE html>\
+<html lang=\"en\">\
+<p>This Site is Hosted by Handwritten HTTP Server for Study.</p>\
+<p>The Content is Preparing Now...</p>\
+</html>\
+";
+
+void
+handle_http_request(http_request *req, int client_fd)
+{
+  enum HttpMethod method;
+  if (into_http_method(req->request_line.method, &method)) {
+    switch (method) {
+    case GET:
+      send(client_fd, http_response, sizeof(http_response), 0);
+      
+      break;
+    default:
+      fprintf(stderr, "unsupported HTTP Method");
+      break;
+    }
+  }
+}
+
 int
 main(int argc, char *argv[])
 {
+  char *mounting_dir = "./";
+  
+  for (int i = 0; i < argc; i++) {
+    if (argv[i][0] != '-')
+      continue;
+
+    if (i + 1 >= argc) {
+      fprintf(stderr, "invalid usage of option '%c' \n", argv[i][1]);
+      return 1;
+    }
+    
+    switch (argv[i][1]) {
+    case 'm':
+      mounting_dir = argv[++i];
+      break;
+    default:
+      fprintf(stderr, "unsupported argment '%c'", *argv[i]);
+      return 1;
+    }
+  }
+
+  DIR *res_dir = opendir(mounting_dir);
+  if (!res_dir) {
+    perror("failed to open resource directory");
+    return 1;
+  }
+
+  // struct dirent *entry;
+  // while ((entry = readdir(res_dir))) {
+  //   printf("%s\n", entry->d_name);
+  //   entry->d_type
+  // }
+  
   struct addrinfo hints, *servinfo;
 
   memset(&hints, 0, sizeof(hints));
@@ -112,7 +184,8 @@ main(int argc, char *argv[])
     char *req = recv_buffer;
     http_request *http_request = parse_http_request(&req);
     if (http_request) {
-      http_request_print(*http_request);
+      /* http_request_print(*http_request); */
+      handle_http_request(http_request, client_fd);
     }
     
     close(client_fd);
