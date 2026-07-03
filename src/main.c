@@ -12,10 +12,14 @@
 #include <signal.h>
 #include <stdbool.h>
 #include <dirent.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "substring.h"
 #include "parse.h"
 #include "http.h"
+#include "util.h"
 
 #define PORT "8080"
 
@@ -60,19 +64,35 @@ into_http_method(substring target, enum HttpMethod *res)
 const char http_response[] = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n\
 <!DOCTYPE html>\
 <html lang=\"en\">\
-<p>This Site is Hosted by Handwritten HTTP Server for Study.</p>\
+<p>This Site is Hosted by HandWritten HTTP Server for Study.</p>\
 <p>The Content is Preparing Now...</p>\
 </html>\
 ";
+
+const char http_response_ok[] = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
+
+resource_entry *resources = NULL;
 
 void
 handle_http_request(http_request *req, int client_fd)
 {
   enum HttpMethod method;
+
   if (into_http_method(req->request_line.method, &method)) {
     switch (method) {
     case GET:
-      send(client_fd, http_response, sizeof(http_response), 0);
+      // exclude '/' prefix from request-target
+      substring request_target = req->request_line.request_target;
+      while (request_target.from[0] == '/')
+        request_target.from++;
+
+      for (resource_entry *res = resources; res; res = res->next) {
+        if (strncmp(request_target.from, res->url, strlen(res->url)) == 0) {
+          send(client_fd, http_response_ok, sizeof http_response_ok, 0);
+          send(client_fd, res->blob, res->len, 0);
+          break;
+        }
+      }
       
       break;
     default:
@@ -112,11 +132,39 @@ main(int argc, char *argv[])
     return 1;
   }
 
-  // struct dirent *entry;
-  // while ((entry = readdir(res_dir))) {
-  //   printf("%s\n", entry->d_name);
-  //   entry->d_type
-  // }
+  file_entry *files = list_files_recursive(mounting_dir);
+
+  for (file_entry *file = files; file; file = file->next) {
+    char *url = file->path;
+    while (url[0] != '/')
+      url++;
+    /* skip '/' */
+    url++;
+
+    int fd = open(file->path, O_RDONLY);
+    if (fd < 0) {
+      perror("failed to open file");
+      return 1;
+    }
+
+    struct stat finfo;
+    if (fstat(fd, &finfo) == -1) {
+      perror("failed to stat");
+      return 1;
+    }
+
+    size_t file_len = finfo.st_size;
+    char *buf = (char *)malloc(sizeof(char) * file_len);
+    read(fd, buf, file_len);
+
+    resource_entry *new_entry = resource_entry_new(url, buf, file_len);
+    new_entry->next = resources;
+    resources = new_entry;
+  }
+
+  for (resource_entry *entry = resources; entry; entry = entry->next) {
+    printf("%s -> '%.*s\n'", entry->url, entry->len, entry->blob);
+  }
   
   struct addrinfo hints, *servinfo;
 
@@ -184,7 +232,7 @@ main(int argc, char *argv[])
     char *req = recv_buffer;
     http_request *http_request = parse_http_request(&req);
     if (http_request) {
-      /* http_request_print(*http_request); */
+      http_request_print(*http_request);
       handle_http_request(http_request, client_fd);
     }
     
