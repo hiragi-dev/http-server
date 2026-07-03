@@ -2,7 +2,7 @@
 #define __H_SUBSTRING
 
 typedef struct substring {
-  const char *from, *to;
+  char *from, *to;
 } substring;
 
 void

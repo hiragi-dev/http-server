@@ -139,6 +139,6 @@ http_request_print(http_request target)
 
   printf("\tHedaers:\n");
   for (http_field *h = target.http_fields; h; h = h->next) {
-    printf("\t\t%.*s:\t%.*s\n", (int)(h->name.to) - (int)(h->name.from), h->name.from, (int)(h->value.to) - (int)(h->value.from), h->value.from);
+    printf("\t\t%.*s:\t%.*s\n", (int)((unsigned long)(h->name.to) - (unsigned long)(h->name.from)), h->name.from, (int)((unsigned long)(h->value.to) - (unsigned long)(h->value.from)), h->value.from);
   }
 }

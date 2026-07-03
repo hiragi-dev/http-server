@@ -9,7 +9,7 @@ eat_until(char **src, char d, substring *res)
 {
   char *_src = *src;
 
-  for (char *s = *src; s != '\0'; s++) {
+  for (char *s = *src; *s != '\0'; s++) {
     if (*s == d) {
       *res = (substring){ .from = _src, .to = s };
       *src = s;
