@@ -94,21 +94,14 @@ handle_http_request(http_request *req, int client_fd)
   if (into_http_method(req->request_line.method, &method)) {
     switch (method) {
     case GET:
-      // exclude '/' prefix from request-target
-      substring request_target = req->request_line.request_target;
-      while (request_target.from[0] == '/')
-        request_target.from++;
-
-      for (resource_entry *res = resources; res; res = res->next) {
-        if (strncmp(request_target.from, res->url, strlen(res->url)) == 0) {
-          send(client_fd, http_response_ok, sizeof http_response_ok, 0);
-          send(client_fd, res->blob, res->len, 0);
-          return;
-        }
+      resource_entry *target = resource_entry_find_with_url(resources, req->request_line.request_target.from);
+      if (target) {
+        send(client_fd, http_response_ok, sizeof http_response_ok, 0);
+        send(client_fd, target->blob, target->len, 0);
+      } else {
+        send(client_fd, http_response_404, sizeof http_response_404, 0);
       }
 
-      send(client_fd, http_response_404, sizeof http_response_404, 0);
-      
       break;
     default:
       fprintf(stderr, "unsupported HTTP Method");
@@ -153,8 +146,6 @@ main(int argc, char *argv[])
     char *url = file->path;
     while (url[0] != '/')
       url++;
-    /* skip '/' */
-    url++;
 
     int fd = open(file->path, O_RDONLY);
     if (fd < 0) {
@@ -247,7 +238,7 @@ main(int argc, char *argv[])
     char *req = recv_buffer;
     http_request *http_request = parse_http_request(&req);
     if (http_request) {
-      http_request_print(*http_request);
+      // http_request_print(*http_request);
       handle_http_request(http_request, client_fd);
     }
     

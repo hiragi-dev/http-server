@@ -26,4 +26,7 @@ file_entry_free(file_entry *entries);
 resource_entry *
 resource_entry_new(char *url, char *blob, size_t len);
 
+resource_entry *
+resource_entry_find_with_url(resource_entry *head, char *url);
+
 #endif

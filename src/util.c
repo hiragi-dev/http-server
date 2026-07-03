@@ -79,3 +79,14 @@ resource_entry *resource_entry_new(char *url, char *blob, size_t len)
 
   return entry;
 }
+
+resource_entry *
+resource_entry_find_with_url(resource_entry *head, char *url)
+{
+  for (resource_entry *res = head; res; res = res->next) {
+    if (strncmp(res->url, url, strlen(res->url)) == 0)
+      return res;
+  }
+
+  return NULL;
+}
