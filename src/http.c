@@ -133,9 +133,9 @@ http_request_print(http_request target)
 {
   printf("HTTP Request:\n");
   
-  printf("\tmethod:\t"); substring_print(target.request_line.method);
-  printf("\trequest-target:\t"); substring_print(target.request_line.request_target);
-    printf("\tprotocol:\t"); substring_print(target.request_line.protocol);
+  printf("\tmethod:\t");          substring_print(target.request_line.method);
+  printf("\trequest-target:\t");  substring_print(target.request_line.request_target);
+  printf("\tprotocol:\t");        substring_print(target.request_line.protocol);
 
   printf("\tHedaers:\n");
   for (http_field *h = target.http_fields; h; h = h->next) {
