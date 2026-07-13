@@ -7,7 +7,6 @@ struct bsem_t {
   int v;
 };
 
-
 struct client_queue_entry_t {
   int fd;
 
